@@ -27,6 +27,49 @@ View(merged_Final_Data)
 #load ggplot2 for visualization
 library(ggplot2)
 
+#Make sure all variables are numeric integers
+numeric_df <- merged_Final_Data %>% 
+  select(where(is.numeric)) %>%
+  select(-DRAFT_YEAR, -DRAFT_NUMBER) 
+
+cor_matrix <- cor(numeric_df, use = "complete.obs")
+
+# Convert correlation matrix to long format using base R
+cor_df <- data.frame(
+  row = rep(rownames(cor_matrix), 
+  col = rep(colnames(cor_matrix), each = nrow(cor_matrix)),
+  value = as.vector(cor_matrix)
+)
+
+# Create ggplot heatmap
+ggplot(cor_df, aes(x = row, y = col, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Correlation") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+        axis.title = element_blank()) +
+  coord_fixed() +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 3) +
+  labs(x = NULL, y = NULL)
+
+# Position vs Performance facets (unchanged)
+ggplot(merged_Final_Data, aes(x = POS, y = PPG)) +
+  geom_boxplot() +
+  facet_wrap(~POS, scales = "free")
+
+# Height vs Blocks with position colors (unchanged)
+ggplot(merged_Final_Data, aes(x = PLAYER_HEIGHT_INCHES, y = BPG, color = POS)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Height vs Blocks by Position")
+
+# Draft Round vs Performance (unchanged)
+ggplot(merged_Final_Data, aes(x = as.factor(DRAFT_ROUND), y = PPG)) +
+  geom_violin() +
+  labs(x = "Draft Round")
+
 #Create scatter plot for Height vs. 3P%
 ggplot(merged_Final_Data, aes(x = PLAYER_HEIGHT_INCHES, y = `3P%`)) +
   geom_point(alpha = 0.6) +
