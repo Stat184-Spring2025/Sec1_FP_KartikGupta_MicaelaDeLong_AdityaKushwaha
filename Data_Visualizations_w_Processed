@@ -54,18 +54,18 @@ ggplot(cor_df, aes(x = row, y = col, fill = value)) +
   geom_text(aes(label = round(value, 2)), color = "black", size = 3) +
   labs(x = NULL, y = NULL)
 
-# Position vs Performance facets (unchanged)
+# Position vs Performance facets 
 ggplot(merged_Final_Data, aes(x = POS, y = PPG)) +
   geom_boxplot() +
   facet_wrap(~POS, scales = "free")
 
-# Height vs Blocks with position colors (unchanged)
+# Height vs Blocks with position colors 
 ggplot(merged_Final_Data, aes(x = PLAYER_HEIGHT_INCHES, y = BPG, color = POS)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", se = FALSE) +
   labs(title = "Height vs Blocks by Position")
 
-# Draft Round vs Performance (unchanged)
+# Draft Round vs Performance 
 ggplot(merged_Final_Data, aes(x = as.factor(DRAFT_ROUND), y = PPG)) +
   geom_violin() +
   labs(x = "Draft Round")
