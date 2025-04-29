@@ -16,8 +16,8 @@ df_select_cols <- df_Kaggle_set[, c("PName", "POS", "Team", "GP", "Min", "PTS", 
 df_perGame_Stats <- df_select_cols %>%
   mutate(
     PPG = round(PTS / GP, 1), # Points Per Game 
-    RPG = round(PTS / GP, 1), # Rebounds Per Game 
-    APG = round(PTS / GP, 1), # Assists Per Game 
+    RPG = round(RPG / GP, 1), # Rebounds Per Game 
+    APG = round(APG / GP, 1), # Assists Per Game 
     TPG = round(TOV / GP, 1), # Turnovers Per Game 
     SPG = round(STL / GP, 1), # Steals Per Game 
     BPG = round(BLK / GP, 1)  # Blocks Per Game
