@@ -1,0 +1,268 @@
+---
+title: "EDA research question 2"
+output: html_notebook
+---
+
+#EDA for Research Question 2
+
+Below I explored how players peformed in their roles versus what colleges they came from. This might give 
+insight that scouts or coached would want to determine which schools produce the best shooters, centers, etc. 
+This preliminary EDA will serve as a brainstorming of the data visualizations to come which will be more refined and 
+detailed than what is depicted here.The data collected represents the performance statistics of players during the NBA 2022-2023 season. 
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+data <- read.csv('/Users/adikushwaha/Downloads/final_processed_data.csv')
+
+
+```
+
+
+```{r}
+#preliminaryEDA
+colleges <- data %>% 
+  group_by(COLLEGE, POS) %>%
+  summarise(ppg = mean(PPG))
+```
+
+
+```{r}
+
+data %>%
+  group_by(COLLEGE) %>%
+  summarise(avg_ppg = mean(PPG, na.rm = TRUE), n = n()) %>%
+  filter(n >= 5) %>%  # Filter colleges with at least 5 players
+  arrange(desc(avg_ppg)) %>%
+  slice_head(n = 10) %>%
+  ggplot(aes(x = reorder(COLLEGE, avg_ppg), y = avg_ppg)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Top 10 Colleges by Average PPG", x = "College", y = "Average PPG")
+
+```
+
+```{r}
+data %>%
+  filter(DRAFT_YEAR != "Undrafted") %>%
+  mutate(DRAFT_YEAR = as.numeric(DRAFT_YEAR)) %>%
+  group_by(DRAFT_YEAR) %>%
+  summarise(avg_ppg = mean(PPG, na.rm = TRUE)) %>%
+  ggplot(aes(x = DRAFT_YEAR, y = avg_ppg)) +
+  geom_line(color = "darkgreen") +
+  geom_point() +
+  labs(title = "Average PPG by Draft Year", x = "Draft Year", y = "Avg PPG")
+
+```
+```{r}
+data %>%
+  group_by(COUNTRY) %>%
+  summarise(avg_ppg = mean(PPG, na.rm = TRUE), n = n()) %>%
+  filter(n >= 3) %>%
+  arrange(desc(avg_ppg)) %>%
+  ggplot(aes(x = reorder(COUNTRY, avg_ppg), y = avg_ppg)) +
+  geom_col(fill = "purple") +
+  coord_flip() +
+  labs(title = "Average PPG by Country (min 3 players)", x = "Country", y = "Avg PPG")
+
+```
+
+```{r}
+data %>%
+  filter(DRAFT_YEAR != "Undrafted") %>%
+  mutate(DRAFT_YEAR = as.numeric(DRAFT_YEAR)) %>%
+  group_by(COLLEGE, DRAFT_YEAR) %>%
+  summarise(mean_ppg = mean(PPG, na.rm = TRUE), .groups = "drop") %>%
+  filter(!is.na(COLLEGE)) %>%
+  ggplot(aes(x = DRAFT_YEAR, y = fct_rev(fct_infreq(COLLEGE)), fill = mean_ppg)) +
+  geom_tile(color = "white") +
+  scale_fill_viridis_c(option = "C") +
+  labs(title = "College Performance by Draft Year", x = "Draft Year", y = "College", fill = "Avg PPG")
+
+```
+
+```{r}
+
+# Offensive and defensive scores
+data <- data %>%
+  mutate(
+    offensive_score = PPG + APG + `FG.`/10 + `X3P.`/10 + `FT.`/10,
+    defensive_score = RPG + SPG + BPG
+  )
+
+data %>%
+  group_by(COLLEGE) %>%
+  summarise(
+    avg_off = mean(offensive_score, na.rm = TRUE),
+    avg_def = mean(defensive_score, na.rm = TRUE),
+    n = n()
+  ) %>%
+  filter(n >= 3) %>%
+  pivot_longer(cols = c(avg_off, avg_def), names_to = "type", values_to = "score") %>%
+  ggplot(aes(x = reorder(COLLEGE, score), y = score, fill = type)) +
+  geom_col(position = "dodge") +
+  coord_flip() +
+  labs(title = "Top Colleges by Offense vs Defense", y = "Score", x = "College")
+```
+
+```{r}
+data %>%
+  group_by(COUNTRY) %>%
+  summarise(
+    avg_off = mean(offensive_score, na.rm = TRUE),
+    avg_def = mean(defensive_score, na.rm = TRUE),
+    n = n()
+  ) %>%
+  filter(n >= 3) %>%
+  pivot_longer(cols = c(avg_off, avg_def), names_to = "type", values_to = "score") %>%
+  ggplot(aes(x = reorder(COUNTRY, score), y = score, fill = type)) +
+  geom_col(position = "dodge") +
+  coord_flip() +
+  labs(title = "Offensive vs Defensive Profiles by Country", x = "Country", y = "Avg Score")
+
+```
+
+```{r}
+# Step 1: Compute average offensive and defensive scores by college
+college_scores <- data %>%
+  mutate(
+    offensive_score = PPG + APG + `FG.` / 10 + `X3P.` / 10 + `FT.` / 10,
+    defensive_score = RPG + SPG + BPG
+  ) %>%
+  group_by(COLLEGE) %>%
+  summarise(
+    avg_off = mean(offensive_score, na.rm = TRUE),
+    avg_def = mean(defensive_score, na.rm = TRUE),
+    n = n()
+  ) %>%
+  filter(n >= 3)  # Filter for colleges with at least 3 players
+
+# Step 2: Identify top 10 colleges by average offensive score
+top10_colleges <- college_scores %>%
+  arrange(desc(avg_off)) %>%
+  slice_head(n = 10) %>%
+  pull(COLLEGE)
+
+# Step 3: Filter main data to only those top colleges and reshape for plotting
+college_scores %>%
+  filter(COLLEGE %in% top10_colleges) %>%
+  pivot_longer(cols = c(avg_off, avg_def), names_to = "type", values_to = "score") %>%
+  ggplot(aes(x = reorder(COLLEGE, score), y = score, fill = type)) +
+  geom_col(position = "dodge") +
+  coord_flip() +
+  labs(
+    title = "Top 10 Colleges by Offense vs Defense Score",
+    x = "College",
+    y = "Average Score",
+    fill = "Stat Type"
+  ) +
+  theme_minimal()
+
+```
+```{r}
+# Top 10 offensive colleges
+data %>%
+  group_by(COLLEGE) %>%
+  summarise(avg_off = mean(offensive_score, na.rm = TRUE), n = n()) %>%
+  filter(n >= 3) %>%
+  arrange(desc(avg_off)) %>%
+  slice_head(n = 10) %>%
+  ggplot(aes(x = reorder(COLLEGE, avg_off), y = avg_off)) +
+  geom_col(fill = "tomato") +
+  coord_flip() +
+  labs(
+    title = "Top 10 Colleges by Average Offensive Score",
+    x = "College",
+    y = "Offensive Score"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+data %>%
+  group_by(COLLEGE) %>%
+  summarise(avg_def = mean(defensive_score, na.rm = TRUE), n = n()) %>%
+  filter(n >= 3) %>%
+  arrange(desc(avg_def)) %>%
+  slice_head(n = 10) %>%
+  ggplot(aes(x = reorder(COLLEGE, avg_def), y = avg_def)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(
+    title = "Top 10 Colleges by Average Defensive Score",
+    x = "College",
+    y = "Defensive Score"
+  ) +
+  theme_minimal()
+
+```
+
+
+```{r}
+data %>%
+  filter(POS %in% c("C")) %>%
+  group_by(COLLEGE) %>%
+  summarise(
+    n = n(),
+    avg_reb = mean(RPG, na.rm = TRUE),
+    avg_blk = mean(BPG, na.rm = TRUE),
+    avg_pts = mean(PPG, na.rm = TRUE),
+    avg_ft = mean(`FT.`, na.rm = TRUE),
+    center_score = avg_reb + avg_blk + avg_pts + avg_ft/10
+  ) %>%
+  filter(n >= 2) %>%
+  arrange(desc(center_score)) %>%
+  slice_head(n = 10) %>%
+  ggplot(aes(x = reorder(COLLEGE, center_score), y = center_score)) +
+  geom_col(fill = "darkred") +
+  coord_flip() +
+  labs(title = "Top 10 Colleges Producing Elite Centers", x = "College", y = "Center Score")
+
+```
+
+```{r}
+data %>%
+  mutate(shooter_score = (`X3P.` + `FG.` + `FT.`) / 3) %>%
+  group_by(COLLEGE) %>%
+  filter(n() >= 3) %>%
+  ggplot(aes(x = COLLEGE, y = shooter_score)) +
+  geom_boxplot(fill = "purple") +
+  coord_flip() +
+  labs(
+    title = "Shooting Ability by College (Min 3 Players)",
+    y = "Average Shooting % (FG + 3P + FT)",
+    x = "College"
+  ) +
+  theme_minimal()
+
+```
+```{r}
+# Step 1: Calculate a composite shooting score
+data <- data %>%
+  mutate(shooter_score = (`X3P.` + `FG.` + `FT.`) / 3)
+
+# Step 2: Get top 10 colleges by average shooter score
+top10_shooter_colleges <- data %>%
+  group_by(COLLEGE) %>%
+  summarise(avg_shoot = mean(shooter_score, na.rm = TRUE), n = n()) %>%
+  filter(n >= 3) %>%
+  arrange(desc(avg_shoot)) %>%
+  slice_head(n = 10) %>%
+  pull(COLLEGE)
+
+# Step 3: Filter for those colleges and plot
+data %>%
+  filter(COLLEGE %in% top10_shooter_colleges) %>%
+  ggplot(aes(x = COLLEGE, y = shooter_score)) +
+  geom_boxplot(fill = "purple") +
+  coord_flip() +
+  labs(
+    title = "Top 10 Colleges by Shooter Score",
+    y = "Shooter Score (avg of FG%, 3P%, FT%)",
+    x = "College"
+  ) +
+  theme_minimal()
+
+```
+
