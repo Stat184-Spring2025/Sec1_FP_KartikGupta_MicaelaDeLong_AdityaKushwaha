@@ -11,7 +11,16 @@ editor: visual
 
 ## Introduction 
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+The NBA represents the best basketball players in the world and their stats, like many athletes are 
+well documented providing an in depth description of physicality and their background. NBA team scouts and GM's are on a constant watch for different characteristics of players that could provide context to their potential in the league. We wanted to dive into these varying attributes both physical and developmental (i.e. school and background) to get a sense of what makes great performing NBA players. We extracted Data from NBA.com as well as Kaggle to create a complete dataset of 515 NBA players during the 2022-2023 season. From there we determined 2 research questions of interest:
+
+1) How do height and weight determine player sucess in the league as measured by 'points per game' (PPG)?
+
+2) Which Colleges produce the best players by role/position?
+
+
+## DATA Provenance 
+
 
 ## FAIR Principles 
 
@@ -48,15 +57,17 @@ Quarto enables you to weave together content and executable code into a finished
 - Fair Representation: Ensure diverse player backgrounds (country, college) are analyzed equitably.  
 
 
-```{r}
+## Data Analysis 
 
-```
+### Research Question 3: How do height and weight determine player sucess in the league as measured by 'points per game' (PPG)
 
-You can add options to executable code like this
 
-```{r}
-#| echo: false
-2 * 2
-```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+### Research Question 2: Which Colleges produce the best players by role/position 
+
+
+
+## Conclusion 
+
+
+## Sources 
