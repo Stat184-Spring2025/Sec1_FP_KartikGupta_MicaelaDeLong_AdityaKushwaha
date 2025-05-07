@@ -24,6 +24,7 @@ The NBA represents the best basketball players in the world and their stats, lik
 1)  How do height and weight determine player success in the league as measured by different aspects of the game like 'Blocks Per Game', '3 Point Percentage', etc.
 
 ## DATA Provenance
+We gathered the data from Kaggle and NBA.com to wrangle data and to find out whether our research questions that we posed at the beginning were true or false. But why does this matter? We can use the data that we may find to answer future questions on how or why certain players get drafted over others and what creates the best in-game performance. NBA players themselves make-up the cases, whether it’s their physical attributes, role/position or the school they attended.
 
 ## FAIR Principles
 
