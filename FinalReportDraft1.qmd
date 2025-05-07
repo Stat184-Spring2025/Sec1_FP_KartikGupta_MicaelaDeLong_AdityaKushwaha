@@ -1,0 +1,259 @@
+---
+title: "Understanding NBA Player Success: The Role of Physique, College, and Draft Background"
+author:
+  - Aditya Kushwaha
+  - Kartik Gupta
+  - Micaela DeLong
+date: 'May 2025'
+format: 
+  pdf:
+    toc: false
+    geometry: "margin=1in"
+    fig-cap-pos: "top"
+execute:
+  #echo: false
+  warning: false
+  error: false
+editor: visual
+---
+
+## Introduction
+
+The NBA represents the best basketball players in the world and their stats, like many athletes are well documented providing an in depth description of physicality and their background. NBA team scouts and GM's are on a constant watch for different characteristics of players that could provide context to their potential in the league. We wanted to dive into these varying attributes both physical and developmental (i.e. school and background) to get a sense of what makes great performing NBA players. We extracted Data from NBA.com as well as Kaggle to create a complete dataset of 515 NBA players during the 2022-2023 season. From there we determined 2 research questions of interest:
+
+1)  How do height and weight determine player success in the league as measured by different aspects of the game like 'Blocks Per Game', '3 Point Percentage', etc.
+
+## DATA Provenance
+
+## FAIR Principles
+
+1.  Findable
+
+-   Metadata & Documentation: Ensure datasets are properly documented with clear descriptions ("NBA Player Statistics 2023" and "NBA Player Bios 2022-23").\
+-   Constant Identifiers: Use stable URLs ( Kaggle dataset DOI or NBA.com’s official stats page).\
+-   Searchable Keywords: Tag datasets with relevant terms ( "NBA," "basketball analytics," "player performance").\
+
+2.  Accessible
+
+-   Open Access: The Kaggle dataset is publicly available, while NBA.com’s data may have usage restrictions (check terms of service).\
+-   Authentication if Needed: If NBA.com requires API keys, document access procedures.\
+
+3.  Interoperable\
+
+-   Standardized Formats: Use CSV/JSON for compatibility.\
+-   Common Variables: Merge datasets using player IDs/names for cross-analysis (e.g., linking stats to bios).\
+-   Clear Units: Define metrics (height in cm/ft, 3P% as a decimal).\
+
+4.  Reusable
+
+-   Licensing: Kaggle datasets often have CC licenses; NBA.com data may require attribution.\
+-   Methodology Transparency: Document how performance metrics ("best players") are calculated.
+
+## CARE Principles
+
+1.  Collective Benefit\
+
+-   Community Insights: Share findings to benefit teams, players, and fans ( how draft position correlates with success).\
+-   Avoid Harm: Ensure analysis doesn’t reinforce biases (stereotyping players by physical attributes).\
+
+2.  Authority to Control
+
+-   Player Consent: Acknowledge that player data is public but avoid misuse (invasive predictions about health).\
+-   Respect NBA Policies: Follow league guidelines on data usage.\
+
+3.  Responsibility
+
+-   Bias Mitigation: Check if conclusions favor certain demographics (does "best schools" overlook international players?).\
+-   Transparency: Disclose limitations (stats don’t capture leadership intangibles).\
+
+4.  Ethics
+
+-   Privacy: Anonymization isn’t needed for public stats, but avoid combining data to infer private details.\
+-   Fair Representation: Ensure diverse player backgrounds (country, college) are analyzed equitably.
+
+## Data Analysis
+
+Before creating any visualizations, we had to clean and manipulate our data. For example, the data pulled from
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, results='hide'}
+# 1. Install (if needed) and load packages
+if (!requireNamespace("httr",      quietly=TRUE)) install.packages("httr")
+if (!requireNamespace("jsonlite",  quietly=TRUE)) install.packages("jsonlite")
+if (!requireNamespace("dplyr",     quietly=TRUE)) install.packages("dplyr")
+
+library(httr)
+library(jsonlite)
+library(dplyr)
+
+library(readr)
+library(tidyr)
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+```
+
+Here we are using an API call to pull our first data set from NBA.com. This Data set contains vital information like Players physical attributes like Height and Weight as well as other important advanced statistics such as college, country, draft year, draft round, etc. Which can be used as an indicator to provide insights into success.
+
+```{r, echo=FALSE}
+# Load API DATA
+url <- "https://stats.nba.com/stats/leaguedashplayerbiostats"
+params <- list(
+  Season      = "2022-23",
+  SeasonType  = "Regular Season",
+  LeagueID    = "00",
+  PerMode     = "Totals"
+)
+
+# 3. NBA requires certain request headers to avoid a 403
+hdrs <- add_headers(
+  `Accept`             = "application/json, text/plain, */*",
+  `Accept-Language`    = "en-US,en;q=0.5",
+  `Connection`         = "keep-alive",
+  `Host`               = "stats.nba.com",
+  `Origin`             = "https://www.nba.com",
+  `Referer`            = "https://www.nba.com/stats/players/bio?Season=2022-23&SeasonType=Regular+Season",
+  `User-Agent`         = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)",
+  `x-nba-stats-origin` = "stats",
+  `x-nba-stats-token`  = "true"
+)
+
+# 4. Send GET request
+resp <- GET(url, hdrs, query = params)
+
+# 5. Make sure it succeeded
+stop_for_status(resp)
+
+# 6. Parse the JSON payload
+payload <- content(resp, "text", encoding = "UTF-8") %>%
+  fromJSON(flatten = TRUE)
+
+# 7. Extract the first resultSet into a data frame
+df <- payload$resultSets$rowSet[[1]] %>%
+  as.data.frame(stringsAsFactors = FALSE)
+
+# 8. Assign proper column names
+names(df) <- payload$resultSets$headers[[1]]
+head(df, 5) 
+```
+
+Next we will import our second Data set from Kaggle which will contain important information like player statistics in different aspects of the game.
+
+```{r, echo=FALSE}
+df_Kaggle_set <- read_csv("~/Desktop/PennState/STAT184_spring/2023_nba_player_stats.csv")
+
+
+# Selecting useful columns ,emitting unnecessary columns 
+df_select_cols <- df_Kaggle_set[, c("PName", "POS", "Team", "GP", "Min", "PTS", "FG%",
+                                    "3P%", "FT%", "REB", "AST", "TOV", "STL", "BLK",
+                                    "+/-")]
+
+# Calculating PER GAME statistics by Dividing Total / Games Played 
+df_perGame_Stats <- df_select_cols %>%
+  mutate(
+    PPG = round(PTS / GP, 1), # Points Per Game 
+    RPG = round(REB / GP, 1), # Rebounds Per Game 
+    APG = round(AST / GP, 1), # Assists Per Game 
+    TPG = round(TOV / GP, 1), # Turnovers Per Game 
+    SPG = round(STL / GP, 1), # Steals Per Game 
+    BPG = round(BLK / GP, 1)  # Blocks Per Game
+  ) %>%
+  # Only selecting newley caclulated Per Game statistics
+  select("PName", "POS", "Team", "GP", "FG%", "3P%", "FT%", "+/-", "PPG", "RPG", "APG", "TPG", "SPG", "BPG")
+
+#head(df_perGame_Stats,5)
+
+```
+
+Now we will merge our data sets on key attribute 'PLAYER_NAME' to obtain our final cleaned, wrangled data set which will be used for visualization and insights
+
+```{r, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+PerGame_df <- read_csv("~/Desktop/PennState/STAT184_spring/Player_Per_game_stats.csv")
+PlayerPhyscialAttributes_df <- read_csv("~/Desktop/PennState/STAT184_spring/nba_com_API_Data_2022-23.csv")
+
+# Selecting relevant Physical and Draft statistics 
+cleanedPhysicalAttrb <- PlayerPhyscialAttributes_df[, c("PLAYER_NAME", "PLAYER_HEIGHT_INCHES", "PLAYER_WEIGHT",
+                                                        "COLLEGE", "COUNTRY", "DRAFT_YEAR", "DRAFT_ROUND", 
+                                                        "DRAFT_NUMBER")]
+# Renaming column name in PerGame_df from PName to PLAYER_NAME to match column name in cleanedPhysicalAttrb Dataset
+# for merging
+reNamedPerGame_df <- PerGame_df %>%
+  rename(PLAYER_NAME = PName)
+
+
+# Merging Both data sets on Key attribute "PLAYER_NAME" for final fully processed data set 
+# for visualizations 
+merged_Final_Data <- merge(cleanedPhysicalAttrb, reNamedPerGame_df, by = "PLAYER_NAME")
+```
+
+### Research Question : How do height and weight determine player success in the league as measured by 'Blocks Per Game',  (PPG), '3 Point Percentage' (3P%) and 'Rebounds Per Game' (RPG).
+
+### Visualizations: 
+
+```{r, echo=FALSE}
+kable(head(merged_Final_Data, 10), format = "latex", booktabs = TRUE) %>%
+  kable_styling(latex_options = "scale_down", position = "center")
+```
+
+```{r, echo=FALSE, fig.cap= "Player Height vs Blocks Per Game"}
+final_df <- read_csv("~/Desktop/PennState/STAT184_spring/final_processed_data.csv")
+
+# Create the scatter plot invisibly to suppress NULL
+
+  ggplot(final_df, aes(x = PLAYER_HEIGHT_INCHES, y = BPG)) +
+    geom_point(alpha = 0.7, size = 2) +
+    geom_smooth(method = "lm", formula = y ~ x, se = TRUE, linetype = "dashed") +
+    labs(
+      title = "Player Height vs Blocks Per Game\nwith Linear Trend Line",
+      x     = "Player Height (inches)",
+      y     = "Blocks Per Game (BPG)"
+    ) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(hjust = 0.5),
+      axis.title = element_text(face = "bold")
+    )
+```
+
+The scatter plot depicting player height versus blocks per game (BPG) reveals a strong and intuitive relationship that underscores the physical advantages conferred by height in professional basketball. As player height increases, there is a noticeable upward trend in blocking ability, with the tallest athletes consistently outperforming their shorter counterparts in this defensive metric. Players under 75 inches (6'3") tend to average fewer than 0.5 blocks per game, reflecting their physical limitations when contesting shots near the rim. Meanwhile, players standing 80 inches (6'8") or taller not only appear more frequently among the higher BPG values, but many also average over 1.5 blocks per game — with some elite shot blockers exceeding 2.0. This trend is especially pronounced among centers and power forwards who often anchor their team’s interior defense. The outliers at the top right of the plot — tall players with exceptionally high block rates — represent rim protectors who serve as defensive cornerstones, altering shot trajectories and deterring drives. Overall, the visualization confirms the strong correlation between height and shot-blocking prowess, reinforcing the notion that height is one of the most critical physical attributes for effective interior defense in the NBA.
+
+```{r, echo=FALSE, fig.cap="Player Height vs 3 Point Percentage"}
+final_df <- read_csv("~/Desktop/PennState/STAT184_spring/final_processed_data.csv")
+
+ggplot(final_df, aes(x = PLAYER_HEIGHT_INCHES, y = `3P%`)) +
+  geom_point(alpha = 0.7, size = 2) +
+  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, linetype = "dashed", color = "blue") +
+  labs(
+    title = "Player Height vs 3 Point Percentage (3P%)",
+    x = "Player Height (inches)",
+    y = "3 Point Percentage (3P%)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(face = "bold")
+  )
+```
+
+The scatter plot visualizing player height against 3-point shooting percentage reveals a mild negative trend, suggesting that shorter players tend to shoot more accurately from beyond the arc. Players in the 70–75 inch range show a higher concentration of 3P% values between 35% and 45%, which is considered strong in the NBA. As height increases, the spread of 3P% values becomes more erratic and includes many players with very low or even 0% from three, likely indicating that taller players such as forwards and centers are less likely to attempt or make 3-point shots. This trend aligns with the roles typically assigned in the league—shorter guards are often perimeter shooters, while taller players operate closer to the basket. Although there are some exceptions—tall players with decent shooting percentages—the data overall supports the conventional view that elite 3-point shooting is more prevalent among shorter, backcourt players.
+
+```{r, echo=FALSE, fig.cap="Player Weight vs Rebounds"}
+final_df <- read_csv("~/Desktop/PennState/STAT184_spring/final_processed_data.csv")
+
+ggplot(final_df, aes(x = PLAYER_WEIGHT, y = RPG)) +
+  geom_point(alpha = 0.6, size = 2, color = "orange") +
+  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, linetype = "dashed", color = "blue") +
+  labs(
+    title = "Figure 3: Player Weight vs Rebounds Per Game (RPG)",
+    x = "Player Weight (lbs)",
+    y = "Rebounds Per Game (RPG)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 11),
+    axis.title = element_text(face = "bold")
+  )
+
+```
+
+This scatter plot examines the relationship between player weight and rebounds per game (RPG), revealing a clear upward trend. As weight increases, so too does a player’s average number of rebounds per game. Lighter players (under 190 lbs) generally stay below 4 RPG, whereas heavier players—especially those above 240 lbs—frequently exceed 6 or more RPG, with several standout performers reaching double digits. This trend suggests that body mass and physical presence play a crucial role in rebounding success. Heavier players are often better equipped to establish position in the paint, box out opponents, and absorb contact when fighting for boards. The linear regression line reinforces this pattern, showing that weight is positively associated with rebounding output. While rebounding is also influenced by height, timing, and role, this visualization highlights how mass and strength—represented here through weight—are important physical traits for excelling in this aspect of the game.
