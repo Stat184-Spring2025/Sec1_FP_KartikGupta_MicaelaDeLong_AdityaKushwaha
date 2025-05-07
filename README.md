@@ -40,7 +40,7 @@ Aditya Kushwaha — ask5784@psu.edu
 
 Kartik Gupta - kfg5401@psu.edu
 
-Micaela DeLong
+Micaela DeLong - mpd6024@psu.edu
 
 All authors are undergraduate statistics students at Pennsylvania State University. Please feel free to reach out with any questions or inquiries regarding the project or its findings.
 
