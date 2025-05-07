@@ -38,7 +38,7 @@ This project was developed by:
 
 Aditya Kushwaha — ask5784@psu.edu
 
-Kartik Gupta
+Kartik Gupta - kfg5401@psu.edu
 
 Micaela DeLong
 
