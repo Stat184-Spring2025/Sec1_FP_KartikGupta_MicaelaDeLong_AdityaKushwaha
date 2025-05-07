@@ -1,0 +1,80 @@
+library(readr)
+library(tidyr)
+library(tidyverse)
+library(dplyr)
+PerGame_df <- read_csv("~/Desktop/PennState/STAT184_spring/Player_Per_game_stats.csv")
+PlayerPhyscialAttributes_df <- read_csv("~/Desktop/PennState/STAT184_spring/nba_com_API_Data_2022-23.csv")
+
+# Selecting relevant Physical and Draft statistics 
+cleanedPhysicalAttrb <- PlayerPhyscialAttributes_df[, c("PLAYER_NAME", "PLAYER_HEIGHT_INCHES", "PLAYER_WEIGHT",
+                                                        "COLLEGE", "COUNTRY", "DRAFT_YEAR", "DRAFT_ROUND", 
+                                                        "DRAFT_NUMBER")]
+# Renaming column name in PerGame_df from PName to PLAYER_NAME to match column name in cleanedPhysicalAttrb Dataset
+# for merging
+reNamedPerGame_df <- PerGame_df %>%
+  rename(PLAYER_NAME = PName)
+
+View(reNamedPerGame_df)
+View(cleanedPhysicalAttrb)
+
+# Merging Both data sets on Key attribute "PLAYER_NAME" for final fully processed data set 
+# for visualizations 
+merged_Final_Data <- merge(cleanedPhysicalAttrb, reNamedPerGame_df, by = "PLAYER_NAME")
+
+View(merged_Final_Data)
+
+#Data Visualizations ------------
+#load ggplot2 for visualization
+library(ggplot2)
+
+#Make sure all variables are numeric integers
+numeric_df <- merged_Final_Data %>% 
+  select(where(is.numeric)) %>%
+  select(-DRAFT_YEAR, -DRAFT_NUMBER) 
+
+cor_matrix <- cor(numeric_df, use = "complete.obs")
+
+# Convert correlation matrix to long format using base R
+cor_df <- data.frame(
+  row = rep(rownames(cor_matrix), 
+  col = rep(colnames(cor_matrix), each = nrow(cor_matrix)),
+  value = as.vector(cor_matrix)
+)
+
+# Create ggplot heatmap
+ggplot(cor_df, aes(x = row, y = col, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Correlation") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+        axis.title = element_blank()) +
+  coord_fixed() +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 3) +
+  labs(x = NULL, y = NULL)
+
+# Position vs Performance facets 
+ggplot(merged_Final_Data, aes(x = POS, y = PPG)) +
+  geom_boxplot() +
+  facet_wrap(~POS, scales = "free")
+
+# Height vs Blocks with position colors 
+ggplot(merged_Final_Data, aes(x = PLAYER_HEIGHT_INCHES, y = BPG, color = POS)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Height vs Blocks by Position")
+
+# Draft Round vs Performance 
+ggplot(merged_Final_Data, aes(x = as.factor(DRAFT_ROUND), y = PPG)) +
+  geom_violin() +
+  labs(x = "Draft Round")
+
+#Create scatter plot for Height vs. 3P%
+ggplot(merged_Final_Data, aes(x = PLAYER_HEIGHT_INCHES, y = `3P%`)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(title = "Player Height vs 3-Point Percentage",
+       x = "Height (inches)",
+       y = "3-Point Percentage") +
+  theme_minimal()
